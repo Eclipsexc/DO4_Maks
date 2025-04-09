@@ -18,7 +18,7 @@ def check_problem_type(ai, bj, cij):
         return ai, bj, cij, True, 'supplier'
     else:
         diff = total_ai - total_bj
-        print(f"Задача є відкритою. Додається фіктивний Bj з потребою {diff}.")
+        print(f"Задача є незбалансована. Додається фіктивний Bj з потребою {diff}.")
         bj = np.append(bj, diff)
         fake_col = np.zeros((cij.shape[0], 1))
         cij = np.hstack([cij, fake_col])
@@ -94,18 +94,9 @@ def method_least_cost(cij, ai, bj):
     m, n = len(ai), len(bj)
     x = np.zeros((m, n), dtype=int)
 
-    fake_supplier_index = np.where(~cij.any(axis=1))[0]
-    has_fake_supplier = len(fake_supplier_index) > 0
-    fake_supplier_index = fake_supplier_index[0] if has_fake_supplier else -1
-
     cost_indices = [(i, j) for i in range(m) for j in range(n)]
-    cost_indices_main = [(i, j) for (i, j) in cost_indices if i != fake_supplier_index]
-    cost_indices_fake = [(i, j) for (i, j) in cost_indices if i == fake_supplier_index]
 
-    cost_indices_main.sort(key=lambda x: cij[x[0], x[1]])
-    cost_indices_fake.sort(key=lambda x: cij[x[0], x[1]])
-
-    cost_indices = cost_indices_main + cost_indices_fake
+    cost_indices.sort(key=lambda x: (cij[x[0], x[1]] == 0, cij[x[0], x[1]]))
 
     for i, j in cost_indices:
         if ai[i] == 0 or bj[j] == 0:
@@ -116,7 +107,7 @@ def method_least_cost(cij, ai, bj):
         bj[j] -= value
     return x
 
-def метод_потенціалів(ai, bj, cij, initial_plan):
+def method_potentials(ai, bj, cij, initial_plan):
     C = np.copy(cij)
     X = initial_plan.astype(float)
     n, m = C.shape
@@ -233,8 +224,8 @@ def print_initial_table(matrix, ai, bj, title):
     print(format_row(last_row))
 
 if __name__ == '__main__':
-    ai = np.array([40, 60, 50])
-    bj = np.array([30, 10, 45, 75])
+    ai = np.array([50, 60, 50])
+    bj = np.array([20, 10, 45, 75])
     cij = np.array([[1, 7, 2, 5],
                     [3, 8, 4, 1],
                     [6, 3, 5, 3]])
@@ -261,7 +252,7 @@ if __name__ == '__main__':
     print_plan_costs_format(initial_plan, cij, ai, bj, f"Початковий опорний план ({method_name}):")
     print_cost_expression(initial_plan, cij)
 
-    plan, total_cost = метод_потенціалів(ai, bj, cij, initial_plan)
+    plan, total_cost = method_potentials(ai, bj, cij, initial_plan)
 
     if plan is not None:
         plan_int = np.round(plan).astype(int)
